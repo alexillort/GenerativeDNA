@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Generative DNA — Text-to-DNA Generation for MetaHumans</title>
+  <meta name="description" content="Generative DNA: A novel Text-to-DNA framework bridging natural language and MetaHuman parametric generation via fine-tuned Code Llama.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f7f5f0;
+      --ink: #0d0d0d;
+      --ink-soft: #3e3b36;
+      --ink-muted: #9a9490;
+      --accent: #c84b2f;
+      --accent2: #1a3a5c;
+      --accent-soft: rgba(200,75,47,0.07);
+      --line: rgba(13,13,13,0.1);
+      --card: #ffffff;
+      --mono: 'DM Mono', monospace;
+      --serif: 'DM Serif Display', serif;
+      --sans: 'DM Sans', sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 16px; line-height: 1.7; -webkit-font-smoothing: antialiased; }
+
+    header { max-width: 900px; margin: 0 auto; padding: 72px 28px 52px; border-bottom: 1px solid var(--line); animation: fadeUp 0.7s ease both; }
+    .venue-tag { font-family: var(--mono); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); margin-bottom: 22px; display: flex; align-items: center; gap: 10px; }
+    .venue-tag::before { content: ''; display: inline-block; width: 20px; height: 1px; background: var(--accent); }
+    h1 { font-family: var(--serif); font-size: clamp(34px, 6vw, 66px); line-height: 1.06; letter-spacing: -0.02em; margin-bottom: 6px; }
+    h1 em { color: var(--accent); font-style: italic; }
+    .subtitle { font-family: var(--serif); font-style: italic; font-size: clamp(15px, 2.2vw, 19px); color: var(--ink-soft); margin-bottom: 32px; max-width: 700px; line-height: 1.45; }
+    .authors { font-size: 14.5px; color: var(--ink-soft); margin-bottom: 6px; line-height: 1.9; }
+    .authors a { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: rgba(13,13,13,0.2); transition: color 0.15s; }
+    .authors a:hover { color: var(--accent); text-decoration-color: var(--accent); }
+    sup { font-size: 10px; vertical-align: super; }
+    .affil { font-family: var(--mono); font-size: 11px; letter-spacing: 0.05em; color: var(--ink-muted); margin-bottom: 30px; line-height: 1.8; }
+    .btn-row { display: flex; flex-wrap: wrap; gap: 9px; }
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 17px; font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.04em; border-radius: 3px; text-decoration: none; transition: all 0.16s ease; cursor: pointer; border: 1.5px solid transparent; }
+    .btn-primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+    .btn-primary:hover { background: var(--accent); border-color: var(--accent); }
+    .btn-outline { background: transparent; color: var(--ink); border-color: var(--line); }
+    .btn-outline:hover { border-color: var(--ink); }
+    .btn svg { width: 13px; height: 13px; flex-shrink: 0; }
+
+    .dna-sep { max-width: 900px; margin: 0 auto; padding: 24px 28px; animation: fadeUp 0.7s ease 0.1s both; }
+    @keyframes strandFlow { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -120; } }
+
+    section { max-width: 900px; margin: 0 auto; padding: 52px 28px; border-bottom: 1px solid var(--line); animation: fadeUp 0.7s ease 0.2s both; }
+    section:last-of-type { border-bottom: none; }
+    .sec-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-muted); margin-bottom: 16px; }
+    h2 { font-family: var(--serif); font-size: clamp(22px, 3.5vw, 30px); line-height: 1.2; margin-bottom: 18px; }
+    p { font-size: 15px; color: var(--ink-soft); line-height: 1.8; max-width: 720px; }
+    p + p { margin-top: 14px; }
+    strong { color: var(--ink); font-weight: 500; }
+    code { font-family: var(--mono); font-size: 12.5px; background: rgba(13,13,13,0.05); padding: 1px 5px; border-radius: 2px; }
+
+    .fig-wrap { margin-top: 28px; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; background: var(--card); }
+    .fig-ph { width: 100%; background: #181818; display: flex; align-items: center; justify-content: center; min-height: 180px; }
+    .fig-ph-inner { padding: 36px 24px; text-align: center; }
+    .fig-ph-inner p { color: #555; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em; max-width: none; }
+    .fig-caption { padding: 12px 18px; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.04em; color: var(--ink-muted); border-top: 1px solid var(--line); line-height: 1.6; }
+    .fig-num { color: var(--accent); font-weight: 500; }
+
+    .keywords { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
+    .kw { font-family: var(--mono); font-size: 11px; letter-spacing: 0.07em; padding: 4px 12px; border: 1px solid var(--line); border-radius: 2px; color: var(--ink-soft); }
+
+    .pipeline { margin-top: 32px; display: grid; grid-template-columns: repeat(5, 1fr); border: 1px solid var(--line); border-radius: 4px; overflow: hidden; background: var(--card); }
+    .pipe-col { padding: 22px 12px; text-align: center; border-right: 1px solid var(--line); position: relative; }
+    .pipe-col:last-child { border-right: none; }
+    .pipe-col::after { content: '→'; position: absolute; right: -11px; top: 50%; transform: translateY(-50%); font-family: var(--mono); font-size: 14px; color: var(--ink-muted); z-index: 1; }
+    .pipe-col:last-child::after { display: none; }
+    .pipe-icon { width: 40px; height: 40px; background: var(--accent-soft); border: 1px solid rgba(200,75,47,0.15); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; }
+    .pipe-icon svg { width: 18px; height: 18px; color: var(--accent); }
+    .pipe-name { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink); margin-bottom: 5px; }
+    .pipe-detail { font-size: 11px; color: var(--ink-muted); line-height: 1.5; }
+
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 20px; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 4px; padding: 20px 22px; }
+    .card-title { font-family: var(--mono); font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+    .card p { font-size: 13.5px; max-width: none; }
+
+    .table-wrap { margin-top: 28px; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    thead tr { background: var(--ink); }
+    th { font-family: var(--mono); font-size: 9px; letter-spacing: 0.15em; text-transform: uppercase; color: rgba(255,255,255,0.7); padding: 10px 14px; text-align: left; }
+    td { padding: 10px 14px; border-bottom: 1px solid var(--line); color: var(--ink-soft); vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    .td-label { font-family: var(--mono); font-size: 11.5px; color: var(--ink); }
+    .row-ours td { background: var(--accent-soft); }
+    .row-ours .td-label { color: var(--accent); }
+    .badge { display: inline-block; font-family: var(--mono); font-size: 9px; padding: 2px 7px; border-radius: 2px; letter-spacing: 0.06em; white-space: nowrap; }
+    .bg  { background: #e6f4ed; color: #1d6636; }
+    .br  { background: #fce8e4; color: #9b2213; }
+    .bgr { background: #eeede9; color: #666; }
+
+    .spec-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 28px; }
+    .spec-card { background: var(--card); border: 1px solid var(--line); border-radius: 4px; padding: 18px; }
+    .spec-label { font-family: var(--mono); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-muted); margin-bottom: 6px; }
+    .spec-val { font-family: var(--mono); font-size: 13px; color: var(--ink); line-height: 1.5; }
+    .spec-val strong { color: var(--accent); }
+
+    .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; margin-top: 24px; }
+    .gcell { background: var(--card); border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+    .gcell .gph { width: 100%; aspect-ratio: 4/3; background: linear-gradient(140deg,#e8e4dc,#d0cac0); display: flex; align-items: center; justify-content: center; }
+    .gcell .gph svg { width: 24px; height: 24px; color: #bbb; }
+    .gcap { padding: 9px 11px; font-family: var(--mono); font-size: 10px; letter-spacing: 0.03em; color: var(--ink-muted); line-height: 1.5; border-top: 1px solid var(--line); font-style: italic; }
+
+    .bibtex { margin-top: 22px; background: var(--card); border: 1px solid var(--line); border-radius: 4px; padding: 20px 22px; font-family: var(--mono); font-size: 12px; line-height: 1.9; color: var(--ink-soft); white-space: pre-wrap; word-break: break-word; position: relative; }
+    .bk { color: var(--accent); }
+    .bf { color: var(--accent2); }
+    .copy-btn { position: absolute; top: 14px; right: 14px; font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; background: var(--bg); border: 1px solid var(--line); padding: 4px 10px; border-radius: 2px; cursor: pointer; color: var(--ink-muted); transition: all 0.15s; }
+    .copy-btn:hover { border-color: var(--ink); color: var(--ink); }
+
+    footer { max-width: 900px; margin: 0 auto; padding: 36px 28px 60px; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px; border-top: 1px solid var(--line); }
+    .footer-logo { font-family: var(--serif); font-size: 20px; letter-spacing: -0.02em; }
+    footer p { font-family: var(--mono); font-size: 11px; letter-spacing: 0.04em; color: var(--ink-muted); line-height: 1.7; max-width: none; }
+    footer a { color: var(--ink-muted); text-decoration: underline; text-underline-offset: 3px; }
+
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+
+    @media (max-width: 700px) {
+      .pipeline { grid-template-columns: 1fr; }
+      .pipe-col { border-right: none; border-bottom: 1px solid var(--line); }
+      .pipe-col::after { content: '↓'; right: auto; left: 50%; top: auto; bottom: -12px; transform: translateX(-50%); }
+      .pipe-col:last-child { border-bottom: none; }
+      .two-col, .spec-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══ HEADER ═══ -->
+<header>
+  <div class="venue-tag">Springer LNCS · Interactive Systems · 2025</div>
+  <h1>Generative <em>DNA</em></h1>
+  <p class="subtitle">Text-to-DNA Generation for MetaHumans via Generative AI</p>
+
+  <p class="authors">
+    <a href="https://orcid.org/0000-0001-9343-2264">Alexander Rozo-Torres</a><sup>1</sup>
+    &ensp;·&ensp;
+    <a href="https://orcid.org/0000-0001-5714-7482">Huizilopoztli Luna-Garcia</a><sup>1</sup>
+    &ensp;·&ensp;
+    <a href="https://orcid.org/0000-0001-7903-8316">Wilson J. Sarmiento</a><sup>2</sup>
+  </p>
+  <p class="affil">
+    <sup>1</sup> Laboratory of Interactive Technologies and User Experience — LITUX,
+    Universidad Autónoma de Zacatecas, Zacatecas, Mexico<br>
+    <sup>2</sup> Multimedia Research Group GIM,
+    Universidad Militar Nueva Granada, Bogotá, Colombia
+  </p>
+
+  <div class="btn-row">
+    <a href="#" class="btn btn-primary">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Paper (PDF)
+    </a>
+    <a href="#" class="btn btn-outline">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 00-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0020 4.77 5.07 5.07 0 0019.91 1S18.73.65 16 2.48a13.38 13.38 0 00-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 005 4.77a5.44 5.44 0 00-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 009 18.13V22"/></svg>
+      Code
+    </a>
+    <a href="#demo" class="btn btn-outline">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      Demo
+    </a>
+    <a href="#dataset" class="btn btn-outline">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+      Genetic Atlas
+    </a>
+  </div>
+</header>
+
+<!-- ═══ DNA DIVIDER ═══ -->
+<div class="dna-sep">
+  <svg viewBox="0 0 860 56" xmlns="http://www.w3.org/2000/svg" height="56" style="width:100%" preserveAspectRatio="none">
+    <defs>
+      <style>
+        .sa{stroke:#c84b2f;fill:none;stroke-width:1.5;stroke-dasharray:5 3;animation:strandFlow 5s linear infinite}
+        .sb{stroke:#1a3a5c;fill:none;stroke-width:1.5;stroke-dasharray:5 3;animation:strandFlow 5s linear infinite reverse}
+        .rg{stroke:#c0bcb5;stroke-width:1}.na{fill:#c84b2f}.nb{fill:#1a3a5c}
+      </style>
+    </defs>
+    <path class="sa" d="M0,28 C20,7 40,7 60,28 C80,49 100,49 120,28 C140,7 160,7 180,28 C200,49 220,49 240,28 C260,7 280,7 300,28 C320,49 340,49 360,28 C380,7 400,7 420,28 C440,49 460,49 480,28 C500,7 520,7 540,28 C560,49 580,49 600,28 C620,7 640,7 660,28 C680,49 700,49 720,28 C740,7 760,7 780,28 C800,49 820,49 840,28 C860,7 860,7 860,28"/>
+    <path class="sb" d="M0,28 C20,49 40,49 60,28 C80,7 100,7 120,28 C140,49 160,49 180,28 C200,7 220,7 240,28 C260,49 280,49 300,28 C320,7 340,7 360,28 C380,49 400,49 420,28 C440,7 460,7 480,28 C500,49 520,49 540,28 C560,7 580,7 600,28 C620,49 640,49 660,28 C680,7 700,7 720,28 C740,49 760,49 780,28 C800,7 820,7 840,28"/>
+    <line class="rg" x1="60"  y1="9"  x2="60"  y2="47"/>
+    <line class="rg" x1="120" y1="9"  x2="120" y2="47"/>
+    <line class="rg" x1="180" y1="9"  x2="180" y2="47"/>
+    <line class="rg" x1="240" y1="9"  x2="240" y2="47"/>
+    <line class="rg" x1="300" y1="9"  x2="300" y2="47"/>
+    <line class="rg" x1="360" y1="9"  x2="360" y2="47"/>
+    <line class="rg" x1="420" y1="9"  x2="420" y2="47"/>
+    <line class="rg" x1="480" y1="9"  x2="480" y2="47"/>
+    <line class="rg" x1="540" y1="9"  x2="540" y2="47"/>
+    <line class="rg" x1="600" y1="9"  x2="600" y2="47"/>
+    <line class="rg" x1="660" y1="9"  x2="660" y2="47"/>
+    <line class="rg" x1="720" y1="9"  x2="720" y2="47"/>
+    <line class="rg" x1="780" y1="9"  x2="780" y2="47"/>
+    <circle class="na" cx="60"  cy="9"  r="3.5"/>
+    <circle class="na" cx="180" cy="9"  r="3.5"/>
+    <circle class="na" cx="300" cy="9"  r="3.5"/>
+    <circle class="na" cx="420" cy="9"  r="3.5"/>
+    <circle class="na" cx="540" cy="9"  r="3.5"/>
+    <circle class="na" cx="660" cy="9"  r="3.5"/>
+    <circle class="na" cx="780" cy="9"  r="3.5"/>
+    <circle class="nb" cx="120" cy="47" r="3.5"/>
+    <circle class="nb" cx="240" cy="47" r="3.5"/>
+    <circle class="nb" cx="360" cy="47" r="3.5"/>
+    <circle class="nb" cx="480" cy="47" r="3.5"/>
+    <circle class="nb" cx="600" cy="47" r="3.5"/>
+    <circle class="nb" cx="720" cy="47" r="3.5"/>
+  </svg>
+</div>
+
+<!-- ═══ TEASER ═══ -->
+<section>
+  <div class="sec-label">// overview</div>
+  <div class="fig-wrap">
+    <div class="fig-ph">
+      <div class="fig-ph-inner">
+        <!-- Replace comment below with actual img tag once converted -->
+        <!-- <img src="static/images/teaser.png" alt="Generative DNA pipeline teaser" style="width:100%;display:block;"> -->
+        <p>→ Convert Teaser.pdf to PNG and save as static/images/teaser.png</p>
+      </div>
+    </div>
+    <div class="fig-caption">
+      <span class="fig-num">Fig. 1 —</span>
+      The Generative DNA Pipeline. An end-to-end "Text-to-DNA" workflow that translates natural language descriptions into functional MetaHuman DNA. The system utilizes an LLM-driven inference engine to synthesize biometric parameters, enabling visualization and animation (via Live Link) of diverse, production-ready digital humans in Unreal Engine 5.
+    </div>
+  </div>
+</section>
+
+<!-- ═══ ABSTRACT ═══ -->
+<section>
+  <div class="sec-label">// abstract</div>
+  <h2>Bridging natural language and parametric human generation</h2>
+  <p>High-fidelity digital human creation remains a significant bottleneck in interactive media, traditionally requiring extensive manual sculpting and technical rigging expertise. While Generative AI offers text-to-3D capabilities, current methods often produce static meshes lacking the functional topology required for professional animation pipelines.</p>
+  <p>This work presents <strong>Generative DNA</strong>, a novel co-creation framework that bridges natural language and parametric generation. By leveraging a fine-tuned <strong>Meta Code Llama (Python)</strong> model, the system translates semantic prompts into executable Python instructions that directly manipulate the binary genetics of the Epic Games <strong>MetaHuman</strong> architecture.</p>
+  <p>Unlike mesh-based approaches, this <strong>"Text-to-DNA"</strong> pipeline preserves strict topological integrity, ensuring immediate compatibility with <strong>Unreal Engine 5</strong> and facial capture systems like <strong>Live Link</strong>. Non-technical users can generate, visualize, and animate diverse, production-ready phenotypes in seconds — democratizing character creation for game development, virtual production, and HCI research.</p>
+  <div class="keywords">
+    <span class="kw">Generative AI</span>
+    <span class="kw">Digital Humans</span>
+    <span class="kw">Large Language Models</span>
+    <span class="kw">Prompt Engineering</span>
+    <span class="kw">MetaHuman</span>
+    <span class="kw">Unreal Engine 5</span>
+    <span class="kw">DNA Calibration</span>
+  </div>
+</section>
+
+<!-- ═══ METHOD ═══ -->
+<section>
+  <div class="sec-label">// method</div>
+  <h2>A five-layer modular architecture</h2>
+  <p>Generative DNA is a modular, human-in-the-loop system acting as a semantic bridge between natural language and high-fidelity 3D rigging. Five distinct layers each carry a clearly scoped responsibility — from user intent capture to binary <code>.dna</code> file synthesis.</p>
+
+  <div class="pipeline">
+    <div class="pipe-col">
+      <div class="pipe-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+      </div>
+      <div class="pipe-name">Interaction</div>
+      <div class="pipe-detail">Text prompt + Intensity α ∈ [0,1]</div>
+    </div>
+    <div class="pipe-col">
+      <div class="pipe-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+      </div>
+      <div class="pipe-name">Logic</div>
+      <div class="pipe-detail">Code Llama · JSON Mapping · Facial Structure · Identity Gen</div>
+    </div>
+    <div class="pipe-col">
+      <div class="pipe-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+      </div>
+      <div class="pipe-name">Genetic Atlas</div>
+      <div class="pipe-detail">66 MetaHumans · DNA Calibration · Archetype.dna</div>
+    </div>
+    <div class="pipe-col">
+      <div class="pipe-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+      </div>
+      <div class="pipe-name">Core Engine</div>
+      <div class="pipe-detail">DNA Reader · LERP Interpolation · Modifier · DNA Writer</div>
+    </div>
+    <div class="pipe-col">
+      <div class="pipe-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5"/></svg>
+      </div>
+      <div class="pipe-name">Output</div>
+      <div class="pipe-detail">New_Identity.dna · UE5 Renderer · Live Link</div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">// White-Box Approach</div>
+      <p>Unlike NeRFs that generate volumetric estimations, the Core Engine performs <strong>deterministic surgery</strong> on binary <code>.dna</code> files using C++ bindings of the Epic Games DNA Calibration Library — ensuring full editability and immediate pipeline compatibility.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">// Genetic Atlas</div>
+      <p>To prevent geometric "hallucinations," the system uses a structured JSON database indexing <strong>66 validated MetaHuman presets</strong>. Semantic queries against phenotypical metadata ensure all interpolations are anatomically plausible — not synthesized from noise.</p>
+    </div>
+  </div>
+
+  <div class="fig-wrap" style="margin-top:24px">
+    <div class="fig-ph">
+      <div class="fig-ph-inner">
+        <!-- <img src="static/images/flowchart.png" alt="System Architecture Flowchart" style="width:100%;display:block;"> -->
+        <p>→ Convert flowchart.pdf to PNG → static/images/flowchart.png</p>
+      </div>
+    </div>
+    <div class="fig-caption">
+      <span class="fig-num">Fig. 2 —</span>
+      Generative DNA System Architecture. The modular pipeline facilitates a "Text-to-DNA" workflow across five layers. The Interaction Layer captures prompts; the Logic Layer (Inference Engine) translates them into biometric parameters; the Core Engine executes binary manipulation to synthesize a unique <code>.dna</code> file for the Renderer.
+    </div>
+  </div>
+</section>
+
+<!-- ═══ DATASET ═══ -->
+<section id="dataset">
+  <div class="sec-label">// dataset</div>
+  <h2>MetaHuman Archetype Repository</h2>
+  <p>The Genetic Atlas consists of 66 calibrated, production-ready MetaHuman phenotypes spanning a wide morphological and ethnic range. Each archetype is stored as a validated <code>.dna</code> binary file and indexed in a structured JSON database — the <strong>Genetic Atlas.json</strong> — with phenotypical metadata for efficient semantic querying by the Logic Layer.</p>
+
+  <div class="fig-wrap" style="margin-top:24px">
+    <div class="fig-ph">
+      <div class="fig-ph-inner">
+        <!-- <img src="static/images/mhbd.png" alt="MetaHuman Dataset Grid" style="width:100%;display:block;"> -->
+        <p>→ Convert MHBD.pdf to PNG → static/images/mhbd.png</p>
+      </div>
+    </div>
+    <div class="fig-caption">
+      <span class="fig-num">Fig. 3 —</span>
+      The MetaHuman Archetype Repository. A diverse set of 66 calibrated phenotypes — spanning ethnicity, age, and morphology — used to construct the Genetic Atlas and serve as donor DNA sources for parametric interpolation.
+    </div>
+  </div>
+</section>
+
+<!-- ═══ COMPARISON ═══ -->
+<section>
+  <div class="sec-label">// comparison</div>
+  <h2>Positioning against the state of the art</h2>
+  <p>Generative DNA is the only approach that simultaneously achieves <strong>semantic text control</strong> and <strong>strict topological integrity</strong> with <strong>immediate UE5 compatibility</strong> — the core trade-off that all prior methods fail to resolve.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Method</th>
+          <th>Representation</th>
+          <th>Topology</th>
+          <th>Control Interface</th>
+          <th>UE5 Compat.</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="td-label">Epic MHC (manual)</td>
+          <td>Parametric Rig</td>
+          <td><span class="badge bg">Strict (native)</span></td>
+          <td>Manual sliders — high load</td>
+          <td><span class="badge bg">Immediate</span></td>
+        </tr>
+        <tr>
+          <td class="td-label">HeadSculpt / Make-A-Char</td>
+          <td>Static Mesh</td>
+          <td><span class="badge br">None (non-functional)</span></td>
+          <td>Semantic (text)</td>
+          <td><span class="badge br">Needs retargeting</span></td>
+        </tr>
+        <tr>
+          <td class="td-label">GaussianAvatars / GAIA</td>
+          <td>Volumetric "Black Box"</td>
+          <td><span class="badge br">None</span></td>
+          <td>Text / Latent</td>
+          <td><span class="badge br">Low / Difficult</span></td>
+        </tr>
+        <tr>
+          <td class="td-label">FaceGPT / T2Bs / KeyframeFace</td>
+          <td>Blendshapes / Frames</td>
+          <td><span class="badge bgr">Partial</span></td>
+          <td>Dialogue / LLM reasoning</td>
+          <td><span class="badge bgr">Indirect</span></td>
+        </tr>
+        <tr class="row-ours">
+          <td class="td-label">Generative DNA ★</td>
+          <td>Parametric DNA (binary)</td>
+          <td><span class="badge bg">Strict (native rig)</span></td>
+          <td>Semantic intent (LLM)</td>
+          <td><span class="badge bg">Immediate</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ═══ IMPLEMENTATION ═══ -->
+<section id="demo">
+  <div class="sec-label">// implementation</div>
+  <h2>Hardware &amp; software stack</h2>
+  <p>Optimized for real-time co-creation with fully <strong>local inference</strong> — no cloud dependencies, no latency. The system synthesizes and visualizes a new facial phenotype in <strong>under 5 minutes</strong> on a single workstation, with VRAM carefully partitioned between the quantized LLM and UE5's high-fidelity renderer.</p>
+
+  <div class="spec-grid">
+    <div class="spec-card">
+      <div class="spec-label">CPU</div>
+      <div class="spec-val">Intel Core <strong>i9-14900</strong><br>64 GB RAM</div>
+    </div>
+    <div class="spec-card">
+      <div class="spec-label">GPU</div>
+      <div class="spec-val">NVIDIA RTX <strong>4000 Ada</strong><br>20 GB VRAM</div>
+    </div>
+    <div class="spec-card">
+      <div class="spec-label">VRAM Split</div>
+      <div class="spec-val"><strong>12 GB</strong> LLM weights<br><strong>8 GB</strong> UE5 rendering</div>
+    </div>
+    <div class="spec-card">
+      <div class="spec-label">LLM</div>
+      <div class="spec-val">Code Llama <strong>13B</strong><br>4-bit AutoGPTQ</div>
+    </div>
+    <div class="spec-card">
+      <div class="spec-label">Runtime</div>
+      <div class="spec-val">Python <strong>3.9</strong><br>DNA Calibration lib</div>
+    </div>
+    <div class="spec-card">
+      <div class="spec-label">Renderer</div>
+      <div class="spec-val">Unreal Engine <strong>5</strong><br>+ Live Link</div>
+    </div>
+  </div>
+
+  <div class="fig-wrap" style="margin-top:28px">
+    <div class="fig-ph">
+      <div class="fig-ph-inner">
+        <!-- <img src="static/images/prompt.png" alt="Interface and resulting phenotypes" style="width:100%;display:block;"> -->
+        <p>→ Convert prompt.pdf to PNG → static/images/prompt.png</p>
+      </div>
+    </div>
+    <div class="fig-caption">
+      <span class="fig-num">Fig. 4 —</span>
+      Interface and Resulting Phenotypes. (Left) The interaction terminal where users define character traits via natural language prompts. (Right) Three distinct outputs: (A) untextured geometry visualizing underlying topological changes, and (B, C) fully textured renders demonstrating structural variation across different semantic descriptors.
+    </div>
+  </div>
+
+  <!-- Example generation prompts -->
+  <div class="gallery">
+    <div class="gcell">
+      <div class="gph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div>
+      <div class="gcap">"Generate a human with soft round face, chubby cheeks, double chin, small button nose, wide mouth, weak jawline"</div>
+    </div>
+    <div class="gcell">
+      <div class="gph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div>
+      <div class="gcap">"Create an angular face, sunken cheeks, pointed chin, long nose, small lips, high and defined cheekbones"</div>
+    </div>
+    <div class="gcell">
+      <div class="gph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div>
+      <div class="gcap">"Generate a human with high cheekbones, large nose, thin jawline and big lips"</div>
+    </div>
+    <div class="gcell">
+      <div class="gph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div>
+      <div class="gcap">"Generate a human with a wide face, broad flat nose, full thick lips, and a strong smooth jawline"</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ BIBTEX ═══ -->
+<section>
+  <div class="sec-label">// citation</div>
+  <h2>BibTeX</h2>
+  <div class="bibtex" id="bib">
+<button class="copy-btn" onclick="copyBib()">copy</button><span class="bk">@inproceedings</span>{RozoTorres2025generativedna,
+  <span class="bf">title</span>     = {Generative {DNA}: Text-to-{DNA} Generation
+               for {MetaHumans} via {GenAI}},
+  <span class="bf">author</span>    = {Rozo-Torres, Alexander and
+               Luna-Garcia, Huizilopoztli and
+               Sarmiento, Wilson J.},
+  <span class="bf">booktitle</span> = {Lecture Notes in Computer Science},
+  <span class="bf">publisher</span> = {Springer},
+  <span class="bf">year</span>      = {2025},
+  <span class="bf">url</span>       = {https://yourusername.github.io/generative-dna}
+}</div>
+</section>
+
+<!-- ═══ FOOTER ═══ -->
+<footer>
+  <div class="footer-logo">Generative DNA</div>
+  <p>
+    Alexander Rozo-Torres · Huizilopoztli Luna-Garcia · Wilson J. Sarmiento<br>
+    LITUX Lab — Universidad Autónoma de Zacatecas &nbsp;·&nbsp; GIM — Univ. Militar Nueva Granada<br>
+    <a href="mailto:omar.rozo.torres@uaz.edu.mx">omar.rozo.torres@uaz.edu.mx</a> ·
+    <a href="mailto:huizilopoztli.luna@uaz.edu.mx">huizilopoztli.luna@uaz.edu.mx</a> ·
+    <a href="mailto:wilson.sarmiento@unimilitar.edu.co">wilson.sarmiento@unimilitar.edu.co</a>
+  </p>
+</footer>
+
+<script>
+function copyBib() {
+  const raw = `@inproceedings{RozoTorres2025generativedna,
+  title     = {Generative {DNA}: Text-to-{DNA} Generation for {MetaHumans} via {GenAI}},
+  author    = {Rozo-Torres, Alexander and Luna-Garcia, Huizilopoztli and Sarmiento, Wilson J.},
+  booktitle = {Lecture Notes in Computer Science},
+  publisher = {Springer},
+  year      = {2025},
+  url       = {https://yourusername.github.io/generative-dna}
+}`;
+  navigator.clipboard.writeText(raw).then(() => {
+    const btn = document.querySelector('.copy-btn');
+    btn.textContent = 'copied!';
+    btn.style.color = 'var(--accent)';
+    btn.style.borderColor = 'var(--accent)';
+    setTimeout(() => { btn.textContent = 'copy'; btn.style.color = ''; btn.style.borderColor = ''; }, 2200);
+  });
+}
+</script>
+</body>
+</html>
